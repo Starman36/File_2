@@ -1,0 +1,63 @@
+import requests
+from bs4 import BeautifulSoup
+import json
+import pandas as pd
+
+import os
+os.system("pip install lxml")
+     
+
+separator = '-----------------------------------------'
+vac_list = []
+
+url = "https://api.hh.ru/vacancies/"
+par = {'text': 'Системный аналитик', 'area': '1', 'per_page': '10'}
+response = requests.get(url, params=par)
+r = json.loads(response.text)
+
+for item in r['items']:
+   vac_list.append(item['url'])
+hh = []
+for vac in vac_list:
+ url = vac
+ response = requests.get(url)
+ text = json.loads(response.text)
+ id = text["id"]
+ vac_name = text["name"]
+ desc = text["description"]
+ soup = BeautifulSoup(desc, features="lxml")
+ key_skills = [x['name'] for x in text["key_skills"]]
+
+ if not text["billing_type"]:
+     company_name = "None"
+ else:
+     company_name = text["billing_type"]["name"]
+
+ if not text["address"]:
+     address = "None"
+ else:
+     address = text["address"]["raw"]
+
+ if not text["experience"]:
+     exp = "None"
+ else:
+     exp = text["experience"]["name"]
+ hh.append({'id': id,
+ 'company_name': company_name,
+ 'vac_name': vac_name,
+ 'address': address,
+ 'exp': exp,
+ 'key_skills': key_skills,
+ 'description': soup.get_text()
+ })
+ print(f'id = {id}\n'
+ f'company name = {company_name}\n'
+ f'vacancy name = {vac_name}\n'
+ f'company address = {address}\n'
+ f'experience = {exp}\n'
+ f'description = {soup.get_text()}\n'
+ f'key_skills = {key_skills}')
+ print(separator)
+
+data = pd.DataFrame.from_records(hh)
+data.to_csv('new_res_5.csv')
